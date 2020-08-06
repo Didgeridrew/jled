@@ -41,7 +41,7 @@ namespace jled {
 static constexpr uint8_t kFullBrightness = 255;
 static constexpr uint8_t kZeroBrightness = 0;
 
-uint8_t fadeon_func(uint32_t t, uint16_t period);
+uint32_t fadeon_func(uint32_t t, uint32_t period);
 uint8_t rand8();
 void rand_seed(uint32_t s);
 uint8_t scale5(uint8_t val, uint8_t factor);
@@ -53,8 +53,8 @@ uint8_t scale5(uint8_t val, uint8_t factor);
 // the LED.
 class BrightnessEvaluator {
  public:
-    virtual uint16_t Period() const = 0;
-    virtual uint8_t Eval(uint32_t t) const = 0;
+    virtual uint32_t Period() const = 0;
+    virtual uint32_t Eval(uint32_t t) const = 0;
 };
 
 class CloneableBrightnessEvaluator : public BrightnessEvaluator {
@@ -73,53 +73,53 @@ class ConstantBrightnessEvaluator : public CloneableBrightnessEvaluator {
     BrightnessEvaluator* clone(void* ptr) const override {
         return new (ptr) ConstantBrightnessEvaluator(*this);
     }
-    uint16_t Period() const override { return 1; }
-    uint8_t Eval(uint32_t) const override { return val_; }
+    uint32_t Period() const override { return 1; }
+    uint32_t Eval(uint32_t) const override { return val_; }
 };
 
 // BlinkBrightnessEvaluator does one on-off cycle in the specified period
 class BlinkBrightnessEvaluator : public CloneableBrightnessEvaluator {
-    uint16_t duration_on_, duration_off_;
+    uint32_t duration_on_, duration_off_;
 
  public:
     BlinkBrightnessEvaluator() = delete;
-    BlinkBrightnessEvaluator(uint16_t duration_on, uint16_t duration_off)
+    BlinkBrightnessEvaluator(uint32_t duration_on, uint32_t duration_off)
         : duration_on_(duration_on), duration_off_(duration_off) {}
     BrightnessEvaluator* clone(void* ptr) const override {
         return new (ptr) BlinkBrightnessEvaluator(*this);
     }
-    uint16_t Period() const override { return duration_on_ + duration_off_; }
-    uint8_t Eval(uint32_t t) const override {
+    uint32_t Period() const override { return duration_on_ + duration_off_; }
+    uint32_t Eval(uint32_t t) const override {
         return (t < duration_on_) ? kFullBrightness : kZeroBrightness;
     }
 };
 
 // fade LED on
 class FadeOnBrightnessEvaluator : public CloneableBrightnessEvaluator {
-    uint16_t period_;
+    uint32_t period_;
 
  public:
     FadeOnBrightnessEvaluator() = delete;
-    explicit FadeOnBrightnessEvaluator(uint16_t period) : period_(period) {}
+    explicit FadeOnBrightnessEvaluator(uint32_t period) : period_(period) {}
     BrightnessEvaluator* clone(void* ptr) const override {
         return new (ptr) FadeOnBrightnessEvaluator(*this);
     }
-    uint16_t Period() const override { return period_; }
-    uint8_t Eval(uint32_t t) const override { return fadeon_func(t, period_); }
+    uint32_t Period() const override { return period_; }
+    uint32_t Eval(uint32_t t) const override { return fadeon_func(t, period_); }
 };
 
 // fade LED off
 class FadeOffBrightnessEvaluator : public CloneableBrightnessEvaluator {
-    uint16_t period_;
+    uint32_t period_;
 
  public:
     FadeOffBrightnessEvaluator() = delete;
-    explicit FadeOffBrightnessEvaluator(uint16_t period) : period_(period) {}
+    explicit FadeOffBrightnessEvaluator(uint32_t period) : period_(period) {}
     BrightnessEvaluator* clone(void* ptr) const override {
         return new (ptr) FadeOffBrightnessEvaluator(*this);
     }
-    uint16_t Period() const override { return period_; }
-    uint8_t Eval(uint32_t t) const override {
+    uint32_t Period() const override { return period_; }
+    uint32_t Eval(uint32_t t) const override {
         return fadeon_func(period_ - t, period_);
     }
 };
@@ -131,16 +131,16 @@ class FadeOffBrightnessEvaluator : public CloneableBrightnessEvaluator {
 //   http://sean.voisen.org/blog/2011/10/breathing-led-with-arduino/
 // But we do it with integers only.
 class BreatheBrightnessEvaluator : public CloneableBrightnessEvaluator {
-    uint16_t period_;
+    uint32_t period_;
 
  public:
     BreatheBrightnessEvaluator() = delete;
-    explicit BreatheBrightnessEvaluator(uint16_t period) : period_(period) {}
+    explicit BreatheBrightnessEvaluator(uint32_t period) : period_(period) {}
     BrightnessEvaluator* clone(void* ptr) const override {
         return new (ptr) BreatheBrightnessEvaluator(*this);
     }
-    uint16_t Period() const override { return period_; }
-    uint8_t Eval(uint32_t t) const override {
+    uint32_t Period() const override { return period_; }
+    uint32_t Eval(uint32_t t) const override {
         if (t + 1 >= period_) return kZeroBrightness;
         const decltype(period_) periodh = period_ >> 1;
         return t < periodh ? fadeon_func(t, periodh)
@@ -151,7 +151,7 @@ class BreatheBrightnessEvaluator : public CloneableBrightnessEvaluator {
 class CandleBrightnessEvaluator : public CloneableBrightnessEvaluator {
     uint8_t speed_;
     uint8_t jitter_;
-    uint16_t period_;
+    uint32_t period_;
     mutable uint8_t last_ = 5;
     mutable uint32_t last_t_ = 0;
 
@@ -162,15 +162,15 @@ class CandleBrightnessEvaluator : public CloneableBrightnessEvaluator {
     //         halfes the speed.
     // jitter - amount of jittering to apply. 0 - no jitter, 15 - candle,
     //                                        64 - fire, 255 - storm
-    CandleBrightnessEvaluator(uint8_t speed, uint8_t jitter, uint16_t period)
+    CandleBrightnessEvaluator(uint8_t speed, uint8_t jitter, uint32_t period)
         : speed_(speed), jitter_(jitter), period_(period) {}
 
     BrightnessEvaluator* clone(void* ptr) const override {
         return new (ptr) CandleBrightnessEvaluator(*this);
     }
 
-    uint16_t Period() const override { return period_; }
-    uint8_t Eval(uint32_t t) const override {
+    uint32_t Period() const override { return period_; }
+    uint32_t Eval(uint32_t t) const override {
         // idea from
         // https://cpldcpu.wordpress.com/2013/12/08/hacking-a-candleflicker-led/
         // TODO(jd) finetune values
@@ -262,25 +262,25 @@ class TJLed {
     }
 
     // Fade LED on
-    B& FadeOn(uint16_t duration) {
+    B& FadeOn(uint32_t duration) {
         return SetBrightnessEval(new (brightness_eval_buf_)
                                      FadeOnBrightnessEvaluator(duration));
     }
 
     // Fade LED off - acutally is just inverted version of FadeOn()
-    B& FadeOff(uint16_t duration) {
+    B& FadeOff(uint32_t duration) {
         return SetBrightnessEval(new (brightness_eval_buf_)
                                      FadeOffBrightnessEvaluator(duration));
     }
 
     // Set effect to Breathe, with the given period time in ms.
-    B& Breathe(uint16_t period) {
+    B& Breathe(uint32_t period) {
         return SetBrightnessEval(new (brightness_eval_buf_)
                                      BreatheBrightnessEvaluator(period));
     }
 
     // Set effect to Blink, with the given on- and off- duration values.
-    B& Blink(uint16_t duration_on, uint16_t duration_off) {
+    B& Blink(uint32_t duration_on, uint32_t duration_off) {
         return SetBrightnessEval(
             new (brightness_eval_buf_)
                 BlinkBrightnessEvaluator(duration_on, duration_off));
@@ -288,7 +288,7 @@ class TJLed {
 
     // Set effect to Candle light simulation
     B& Candle(uint8_t speed = 6, uint8_t jitter = 15,
-              uint16_t period = 0xffff) {
+              uint32_t period = 0xffff) {
         return SetBrightnessEval(
             new (brightness_eval_buf_)
                 CandleBrightnessEvaluator(speed, jitter, period));
@@ -426,7 +426,7 @@ class TJLed {
     // only 5 bits here saves us a byte, since summing up with previous defs.
  public:
     static constexpr uint8_t kBitsBrightness = 5;
-    static constexpr uint8_t kBrightnessStep = 1 << (8 - kBitsBrightness);
+    static constexpr uint8_t kBrightnessStep = 1 << (1 - kBitsBrightness);
 
  private:
     uint8_t maxBrightness_ : kBitsBrightness;

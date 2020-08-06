@@ -74,7 +74,7 @@ class Esp32Hal {
     // the next available channel will be used, otherwise the specified one.
     // freq defines the ledc base frequency to be used (default: 5000 Hz).
     Esp32Hal(PinType pin, int chan = kAutoSelectChan,
-             uint16_t freq = 5000) noexcept {
+             uint16_t freq = 40000) noexcept {
         // ESP32 framework lacks analogWrite() support, but behaviour can
         // be achievedd using LEDC channels.
         // https://docs.espressif.com/projects/esp-idf/en/latest/api-reference/peripherals/ledc.html

@@ -37,7 +37,7 @@ static constexpr uint8_t kFadeOnTable[] = {0,   3,   13,  33, 68,
 // https://www.wolframalpha.com/input/?i=plot+(exp(sin((x-100%2F2.)*PI%2F100))-0.36787944)*108.0++x%3D0+to+100
 // The fade-on func is an approximation of
 //   y(x) = exp(sin((t-period/2.) * PI / period)) - 0.36787944) * 108.)
-uint8_t fadeon_func(uint32_t t, uint16_t period) {
+uint32_t fadeon_func(uint32_t t, uint32_t period) {
     if (t + 1 >= period) return 255;  // kFullBrightness;
 
     // approximate by linear interpolation.
